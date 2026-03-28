@@ -127,7 +127,7 @@ const features: Feature[] = [
 
 function FeatureCard({ feature }: { feature: Feature }) {
   return (
-    <div className={cn("flex flex-col", "max-md:items-center max-md:text-center")}>
+    <div className={cn("flex flex-col card-hover p-6 -m-6 rounded-xl", "max-md:items-center max-md:text-center")}>
       {/* Number */}
       <span
         className="font-mono text-[10px] text-[#a3a3a3]"

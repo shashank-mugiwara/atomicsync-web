@@ -35,13 +35,16 @@ export function ScrollReveal({ children, className, delay = 0 }: ScrollRevealPro
     <div
       ref={ref}
       className={cn(
-        "transition-all duration-700 ease-out",
+        "transition-all duration-[900ms]",
         isVisible
-          ? "translate-y-0 opacity-100"
-          : "translate-y-8 opacity-0",
+          ? "translate-y-0 opacity-100 blur-0"
+          : "translate-y-10 opacity-0 blur-[3px]",
         className
       )}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={{
+        transitionDelay: `${delay}ms`,
+        transitionTimingFunction: "cubic-bezier(.16, 1, .3, 1)",
+      }}
     >
       {children}
     </div>

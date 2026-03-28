@@ -177,17 +177,23 @@ export function HeroSection() {
 
   return (
     <section
-      className="relative min-h-screen overflow-hidden"
+      className="relative min-h-screen overflow-hidden grain-overlay"
       style={{
         backgroundImage: `
-          linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px)
+          linear-gradient(to right, rgba(0,0,0,0.025) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(0,0,0,0.025) 1px, transparent 1px)
         `,
         backgroundSize: "80px 80px",
       }}
     >
+      {/* Subtle gradient accent behind content */}
+      <div
+        className="absolute top-[10%] right-[10%] w-[500px] h-[500px] rounded-full opacity-[0.04] pointer-events-none"
+        style={{ background: "radial-gradient(circle, #00ff88 0%, transparent 70%)" }}
+      />
+
       {/* Content wrapper */}
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 md:px-10 pt-[120px] pb-20 flex flex-col lg:flex-row items-start lg:items-center gap-12 lg:gap-8 min-h-screen">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 md:px-10 pt-[140px] pb-24 flex flex-col lg:flex-row items-start lg:items-center gap-12 lg:gap-8 min-h-screen">
         {/* ============== LEFT COLUMN — TYPOGRAPHY ============== */}
         <div className="w-full lg:w-[60%] flex flex-col justify-center">
           {/* Eyebrow */}
@@ -197,18 +203,19 @@ export function HeroSection() {
             [ YOUR HEALTH, ALIVE ]
           </span>
 
-          {/* Main heading */}
+          {/* Main heading — dramatic scale inspired by Apple/Stripe */}
           <h1
-            className="font-sans font-bold leading-[1.05] tracking-[-0.03em] text-[#0a0a0a] text-[36px] md:text-[48px] lg:text-[72px]"
+            className="font-sans font-bold heading-display text-[#0a0a0a] text-[42px] md:text-[56px] lg:text-[84px] xl:text-[96px]"
           >
             YOUR HEALTH,
             <br />
-            EVOLVED<span className="text-[#00ff88]">.</span>
+            <span className="gradient-text-neon">EVOLVED</span>
+            <span className="text-[#00ff88]">.</span>
           </h1>
 
           {/* Subheading */}
           <p
-            className="font-serif italic font-normal text-[16px] md:text-[18px] leading-[1.6] text-[#737373] max-w-[480px] mt-6"
+            className="font-serif italic font-normal text-[16px] md:text-[18px] lg:text-[20px] leading-[1.6] text-[#525252] max-w-[500px] mt-8 text-balance"
           >
             Meet a companion that reflects your real health. Sleep well, and it
             glows. Skip a workout, and it shows. Your body tells a story — now
@@ -227,29 +234,30 @@ export function HeroSection() {
             ))}
           </div>
 
-          {/* CTA buttons */}
-          <div className="flex flex-wrap gap-4 mt-12">
+          {/* CTA buttons — premium hover with glow */}
+          <div className="flex flex-wrap gap-4 mt-14">
             <button
               onClick={() => setShowBetaModal(true)}
               className={cn(
                 "font-mono text-[11px] uppercase tracking-[0.08em]",
                 "bg-[#0a0a0a] text-white px-8 py-[14px]",
-                "transition-colors duration-200 hover:bg-[#262626]",
+                "transition-all duration-300 hover:bg-[#1a1a1a] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)]",
+                "hover:-translate-y-[2px] active:translate-y-0 active:scale-[0.98]",
                 "cursor-pointer",
               )}
             >
               Join Beta
             </button>
-            <button
+            <a
+              href="#features"
               className={cn(
                 "font-mono text-[11px] uppercase tracking-[0.08em]",
                 "border border-[#0a0a0a] text-[#0a0a0a] bg-transparent px-8 py-[14px]",
-                "transition-colors duration-200 hover:bg-[#0a0a0a] hover:text-white",
-                "cursor-pointer",
+                "btn-bordered cursor-pointer",
               )}
             >
               Learn More
-            </button>
+            </a>
           </div>
         </div>
 

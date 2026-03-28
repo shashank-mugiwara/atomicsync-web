@@ -385,22 +385,11 @@ export function EvolutionSection() {
 
                 {/* Card */}
                 <div
-                  className="group w-full max-w-[280px] rounded-xl border text-center transition-all duration-300"
+                  className="card-hover-glow group w-full max-w-[280px] rounded-xl border text-center"
                   style={{
                     backgroundColor: "#141414",
                     borderColor: "#262626",
                     padding: "32px 24px",
-                  }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget;
-                    el.style.borderColor = "#00ff88";
-                    el.style.boxShadow =
-                      "0 0 30px rgba(0,255,136,0.1)";
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget;
-                    el.style.borderColor = "#262626";
-                    el.style.boxShadow = "none";
                   }}
                 >
                   {/* Avatar */}

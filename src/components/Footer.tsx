@@ -20,10 +20,12 @@ export function Footer() {
   return (
     <footer
       className={cn(
-        "px-5 pt-10 pb-5 md:px-10 md:pt-[60px] md:pb-[30px]",
+        "relative px-5 pt-14 pb-6 md:px-10 md:pt-[72px] md:pb-[30px]",
         "bg-[#0a0a0a] text-[#fafafa]"
       )}
     >
+      {/* Top gradient line */}
+      <div className="absolute top-0 left-0 right-0 h-px section-divider-glow" />
       <div className="mx-auto max-w-[1200px]">
         {/* Top section — 3 columns */}
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
@@ -50,7 +52,7 @@ export function Footer() {
                 <a
                   key={link.label}
                   href={link.href}
-                  className="font-mono text-[12px] text-[#737373] transition-colors duration-200 hover:text-[#fafafa]"
+                  className="font-mono text-[12px] text-[#737373] transition-all duration-300 hover:text-[#00ff88] hover:tracking-[0.04em]"
                 >
                   {link.label}
                 </a>
@@ -68,7 +70,7 @@ export function Footer() {
                 <a
                   key={link.label}
                   href={link.href}
-                  className="font-mono text-[12px] text-[#737373] transition-colors duration-200 hover:text-[#fafafa]"
+                  className="font-mono text-[12px] text-[#737373] transition-all duration-300 hover:text-[#00ff88] hover:tracking-[0.04em]"
                 >
                   {link.label}
                 </a>

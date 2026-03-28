@@ -53,16 +53,16 @@ function AnimatedNumber({ value, suffix }: { value: string; suffix?: string }) {
   }, [value, isNumeric]);
 
   return (
-    <div ref={ref} className="font-sans text-[56px] font-bold leading-none tracking-[-0.03em] text-[#0a0a0a] md:text-[72px]">
+    <div ref={ref} className="font-sans text-[56px] font-bold leading-none heading-display text-[#0a0a0a] md:text-[80px]">
       {displayed}
-      {suffix && <span className="text-[#00ff88]">{suffix}</span>}
+      {suffix && <span className="gradient-text-neon">{suffix}</span>}
     </div>
   );
 }
 
 export function StatsSection() {
   return (
-    <section className="border-y border-[#e5e5e5] bg-[#fafafa] px-5 py-16 md:px-10 md:py-24">
+    <section className="border-y border-[#e5e5e5] bg-[#fafafa] px-5 py-20 md:px-10 md:py-28">
       <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-10 md:grid-cols-4 md:gap-8">
         {stats.map((stat) => (
           <div key={stat.label} className="text-center">
