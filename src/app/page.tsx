@@ -4,7 +4,7 @@ import { FeaturesSection } from "@/components/FeaturesSection";
 import { StatsSection } from "@/components/StatsSection";
 import { EvolutionSection } from "@/components/EvolutionSection";
 import { HowItWorksSection } from "@/components/HowItWorksSection";
-import PricingSection from "@/components/PricingSection";
+import { PricingSection } from "@/components/PricingSection";
 import { Footer } from "@/components/Footer";
 
 export default function Home() {

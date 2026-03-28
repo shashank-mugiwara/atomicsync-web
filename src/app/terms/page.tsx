@@ -1,46 +1,9 @@
 import Link from "next/link";
+import { LegalPageLayout } from "@/components/LegalPageLayout";
 
 export default function TermsPage() {
   return (
-    <>
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b border-[#e5e5e5] bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] backdrop-blur-md">
-        <nav className="flex w-full max-w-full items-center justify-between px-5 py-4 md:px-10">
-          <Link
-            href="/"
-            className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-[#0a0a0a]"
-          >
-            ATOMICSYNC
-          </Link>
-          <Link
-            href="/"
-            className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#737373] transition-colors duration-200 ease-in-out hover:text-[#0a0a0a]"
-          >
-            &larr; Back to Home
-          </Link>
-        </nav>
-      </header>
-
-      <main className="bg-[#fafafa] px-5 py-16 md:py-24">
-        <article className="mx-auto max-w-[800px]">
-          {/* Eyebrow */}
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#737373]">
-            [ LEGAL ]
-          </p>
-
-          {/* Title */}
-          <h1 className="mt-4 font-sans text-[clamp(32px,5vw,48px)] font-bold leading-[1.1] tracking-[-0.02em] text-[#0a0a0a]">
-            Terms of Service
-          </h1>
-
-          {/* Divider */}
-          <div className="mt-6 h-px w-[80px] bg-[#0a0a0a]" />
-
-          {/* Last updated */}
-          <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.08em] text-[#737373]">
-            Last Updated: April 1, 2026
-          </p>
-
+    <LegalPageLayout title="Terms of Service" updatedAt="April 1, 2026">
           {/* Intro */}
           <p className="mt-8 font-serif text-[15px] leading-[1.8] text-[#525252]">
             Please read these Terms of Service carefully before using the
@@ -323,8 +286,6 @@ export default function TermsPage() {
               Privacy Policy &rarr;
             </Link>
           </div>
-        </article>
-      </main>
-    </>
+    </LegalPageLayout>
   );
 }

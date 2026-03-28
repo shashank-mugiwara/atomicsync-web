@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { BetaModal } from "@/components/BetaModal";
 import { cn } from "@/lib/utils";
-import BetaModal from "./BetaModal";
 
 /* ------------------------------------------------------------------ */
 /*  Voxel Avatar — CSS-only blocky humanoid (meebits-inspired)        */

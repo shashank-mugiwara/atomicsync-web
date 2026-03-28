@@ -1,20 +1,6 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "Evolution", href: "#evolution" },
-  { label: "How It Works", href: "#how-it-works" },
-] as const;
-
-const legalLinks = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-] as const;
-
-const socialLinks = [
-  { label: "GITHUB", href: "https://github.com" },
-  { label: "APP STORE", href: "https://apps.apple.com" },
-] as const;
+import { footerNavLinks, legalLinks, socialLinks } from "@/lib/site-links";
 
 export function Footer() {
   return (
@@ -48,7 +34,7 @@ export function Footer() {
               NAVIGATE
             </p>
             <nav className="mt-4 flex flex-col gap-3">
-              {navLinks.map((link) => (
+              {footerNavLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
@@ -67,13 +53,13 @@ export function Footer() {
             </p>
             <nav className="mt-4 flex flex-col gap-3">
               {legalLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
                   href={link.href}
                   className="font-mono text-[12px] text-[#737373] transition-all duration-300 hover:text-[#00ff88] hover:tracking-[0.04em]"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </nav>
             <p className="mt-4 font-mono text-[10px] text-[#525252]">

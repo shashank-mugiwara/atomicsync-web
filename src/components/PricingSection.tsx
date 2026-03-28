@@ -19,7 +19,7 @@ const proFeatures = [
   "Daily AI avatar generation",
 ] as const;
 
-export default function PricingSection() {
+export function PricingSection() {
   const [annual, setAnnual] = useState(true);
 
   return (

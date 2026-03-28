@@ -1,28 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { label: "Features", href: "#features" },
-  { label: "Evolution", href: "#evolution" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
-] as const;
+import { mainNavLinks } from "@/lib/site-links";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 50);
-  }, []);
-
   useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 50);
+    }
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+  }, []);
 
   return (
     <header
@@ -35,16 +30,16 @@ export function Navbar() {
     >
       <nav className="flex w-full max-w-full items-center justify-between px-5 py-4 md:px-10">
         {/* Logo */}
-        <a
+        <Link
           href="/"
           className="font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-[#0a0a0a]"
         >
           ATOMICSYNC
-        </a>
+        </Link>
 
         {/* Desktop navigation links */}
         <ul className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link) => (
+          {mainNavLinks.map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
@@ -104,7 +99,7 @@ export function Navbar() {
         )}
       >
         <div className="flex flex-col gap-4 px-5 py-5">
-          {NAV_LINKS.map((link) => (
+          {mainNavLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}

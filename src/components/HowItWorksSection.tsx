@@ -1,5 +1,5 @@
+import { BetaSignup } from "@/components/BetaSignup";
 import { cn } from "@/lib/utils";
-import BetaSignup from "./BetaSignup";
 
 function ConnectIcon({ className }: { className?: string }) {
   return (
