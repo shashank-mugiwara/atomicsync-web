@@ -63,7 +63,7 @@ export function DataToAvatarSection() {
       style={{ height: "300vh" }}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {isVisible && <DataToAvatarCanvas progress={progress} />}
+        {isVisible && <DataToAvatarCanvas progress={progress} isActive={isVisible} />}
 
         <p
           className={cn(

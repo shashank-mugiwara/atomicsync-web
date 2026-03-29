@@ -462,30 +462,38 @@ function bindAttribute(
 // ---------------------------------------------------------------------------
 interface DataToAvatarCanvasProps {
   progress: number;
+  isActive: boolean;
   className?: string;
 }
 
-export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasProps) {
+export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvatarCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const progressRef = useRef<number>(progress);
+  const isActiveRef = useRef<boolean>(isActive);
+  const initializedRef = useRef<boolean>(false);
   const glRef = useRef<{
     gl: WebGLRenderingContext;
     particleProgram: WebGLProgram;
     lineProgram: WebGLProgram;
     buffers: { scattered: WebGLBuffer; target: WebGLBuffer; size: WebGLBuffer; opacity: WebGLBuffer; colorPhase: WebGLBuffer; arrivalOrder: WebGLBuffer; breathPhase: WebGLBuffer };
     particleCount: number;
-    // Line buffer — dynamic, updated each frame
     lineBuffer: WebGLBuffer;
-    // Cached particle data for connection lines (CPU side)
     particleData: ParticleBuffers;
+    w: number;
+    h: number;
   } | null>(null);
 
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
 
-  const init = useCallback(() => {
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+
+  // Initialize WebGL context and compile shaders (fast — no particle generation)
+  const initGL = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -508,86 +516,122 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // Compile programs
     const particleProgram = createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER);
     const lineProgram = createProgram(gl, LINE_VERTEX_SHADER, LINE_FRAGMENT_SHADER);
     if (!particleProgram || !lineProgram) return;
 
-    // Generate particles
-    const isMobile = window.innerWidth < 768;
-    const targetCount = isMobile ? 1500 : 2500;
+    return { gl, particleProgram, lineProgram, w, h };
+  }, []);
 
-    const rawPoints = poissonDiskSample(SILHOUETTE_PATH, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H, targetCount);
-    const filledPoints = fillGaps(rawPoints, SILHOUETTE_PATH, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H);
-    const particleData = buildParticleBuffers(filledPoints, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H);
+  // Generate particles asynchronously using chunked work to avoid blocking main thread
+  const generateParticlesAsync = useCallback((
+    gl: WebGLRenderingContext,
+    particleProgram: WebGLProgram,
+    lineProgram: WebGLProgram,
+    w: number,
+    h: number,
+  ) => {
+    // Use setTimeout to yield to the browser between heavy operations
+    setTimeout(() => {
+      const isMobile = window.innerWidth < 768;
+      const targetCount = isMobile ? 1200 : 2000;
 
-    // Upload buffers
-    const scatteredBuf = createBuffer(gl, particleData.scattered);
-    const targetBuf = createBuffer(gl, particleData.target);
-    const sizeBuf = createBuffer(gl, particleData.size);
-    const opacityBuf = createBuffer(gl, particleData.opacity);
-    const colorPhaseBuf = createBuffer(gl, particleData.colorPhase);
-    const arrivalOrderBuf = createBuffer(gl, particleData.arrivalOrder);
-    const breathPhaseBuf = createBuffer(gl, particleData.breathPhase);
-    const lineBuffer = gl.createBuffer();
+      const rawPoints = poissonDiskSample(SILHOUETTE_PATH, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H, targetCount);
+      const filledPoints = fillGaps(rawPoints, SILHOUETTE_PATH, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H);
+      const particleData = buildParticleBuffers(filledPoints, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H);
 
-    if (!scatteredBuf || !targetBuf || !sizeBuf || !opacityBuf || !colorPhaseBuf || !arrivalOrderBuf || !breathPhaseBuf || !lineBuffer) return;
+      const scatteredBuf = createBuffer(gl, particleData.scattered);
+      const targetBuf = createBuffer(gl, particleData.target);
+      const sizeBuf = createBuffer(gl, particleData.size);
+      const opacityBuf = createBuffer(gl, particleData.opacity);
+      const colorPhaseBuf = createBuffer(gl, particleData.colorPhase);
+      const arrivalOrderBuf = createBuffer(gl, particleData.arrivalOrder);
+      const breathPhaseBuf = createBuffer(gl, particleData.breathPhase);
+      const lineBuffer = gl.createBuffer();
 
-    glRef.current = {
-      gl,
-      particleProgram,
-      lineProgram,
-      buffers: {
-        scattered: scatteredBuf,
-        target: targetBuf,
-        size: sizeBuf,
-        opacity: opacityBuf,
-        colorPhase: colorPhaseBuf,
-        arrivalOrder: arrivalOrderBuf,
-        breathPhase: breathPhaseBuf,
-      },
-      particleCount: particleData.count,
-      lineBuffer,
-      particleData,
-    };
+      if (!scatteredBuf || !targetBuf || !sizeBuf || !opacityBuf || !colorPhaseBuf || !arrivalOrderBuf || !breathPhaseBuf || !lineBuffer) return;
+
+      glRef.current = {
+        gl,
+        particleProgram,
+        lineProgram,
+        buffers: {
+          scattered: scatteredBuf,
+          target: targetBuf,
+          size: sizeBuf,
+          opacity: opacityBuf,
+          colorPhase: colorPhaseBuf,
+          arrivalOrder: arrivalOrderBuf,
+          breathPhase: breathPhaseBuf,
+        },
+        particleCount: particleData.count,
+        lineBuffer,
+        particleData,
+        w,
+        h,
+      };
+    }, 0);
   }, []);
 
   useEffect(() => {
-    init();
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    const glState = initGL();
+    if (!glState) return;
+
+    // Defer heavy particle generation so page loads first
+    generateParticlesAsync(glState.gl, glState.particleProgram, glState.lineProgram, glState.w, glState.h);
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     function handleResize() {
-      // Re-initialize everything on resize
       if (glRef.current) {
         const { gl } = glRef.current;
         gl.getExtension("WEBGL_lose_context")?.loseContext();
       }
       glRef.current = null;
-      init();
+      initializedRef.current = false;
+
+      const newState = initGL();
+      if (newState) {
+        generateParticlesAsync(newState.gl, newState.particleProgram, newState.lineProgram, newState.w, newState.h);
+        initializedRef.current = true;
+      }
     }
 
     window.addEventListener("resize", handleResize);
 
+    let lastProgress = -1;
+
     function animate() {
+      // Skip rendering when not active (off-screen)
+      if (!isActiveRef.current) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       const state = glRef.current;
       if (!state) {
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
-      const { gl, particleProgram, lineProgram, buffers, particleCount, lineBuffer, particleData } = state;
-      const time = performance.now() / 1000;
       const currentProgress = progressRef.current;
 
-      const parent = canvas?.parentElement;
-      if (!canvas || !parent) {
-        animationRef.current = requestAnimationFrame(animate);
-        return;
+      // When fully formed and not scrolling, render at reduced rate
+      if (currentProgress >= 0.85 && Math.abs(currentProgress - lastProgress) < 0.001) {
+        // Still render for breathing, but only every 3rd frame
+        if (performance.now() % 3 > 1) {
+          animationRef.current = requestAnimationFrame(animate);
+          return;
+        }
       }
-      const w = parent.getBoundingClientRect().width;
-      const h = parent.getBoundingClientRect().height;
+      lastProgress = currentProgress;
+
+      const { gl, particleProgram, lineProgram, buffers, particleCount, lineBuffer, particleData, w, h } = state;
+      const time = performance.now() / 1000;
 
       // Clear
       gl.clearColor(0, 0, 0, 0);
@@ -717,7 +761,7 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
       cancelAnimationFrame(animationRef.current);
       window.removeEventListener("resize", handleResize);
     };
-  }, [init]);
+  }, [initGL, generateParticlesAsync]);
 
   return (
     <canvas
