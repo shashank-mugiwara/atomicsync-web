@@ -21,14 +21,12 @@ const SILHOUETTE_PATH = [
   "C 126,40 116,28 100,28",
   "Z",
 
+  // Body — single closed subpath
   // Neck
   "M 92,84",
   "L 92,98",
-  "L 108,98",
-  "L 108,84",
 
   // Torso + shoulders
-  "M 92,98",
   "C 72,100 52,108 48,118",  // left shoulder
   "L 44,120",
   // Left arm
@@ -42,11 +40,12 @@ const SILHOUETTE_PATH = [
   // Left torso side
   "L 64,148",
   "C 66,172 68,196 70,220",
-  // Waist (left hip higher — contrapposto)
-  "C 70,240 68,260 66,280",
-  // Left leg
-  "C 64,310 62,340 60,370",
-  "C 58,390 56,410 56,430",
+  // Waist to left hip (contrapposto — left hip higher)
+  "C 70,236 68,254 66,272",
+  // Left hip to inner thigh — smooth curve
+  "C 64,296 62,320 60,350",
+  // Left shin + ankle
+  "C 58,380 56,410 56,430",
   // Left foot
   "C 56,444 54,454 50,460",
   "C 46,468 42,470 40,470",
@@ -54,26 +53,28 @@ const SILHOUETTE_PATH = [
   "C 42,458 48,454 52,448",
   "C 54,442 56,436 56,430",
 
-  // Cross to right leg at bottom
-  "L 56,430",
-  "L 80,430",
+  // Inner left leg up to crotch — smooth curve
+  "C 58,408 62,380 66,350",
+  "C 70,320 76,296 82,280",
+  // Crotch arch — smooth rounded transition
+  "Q 92,264 100,264",
+  "Q 108,264 118,280",
+  // Inner right leg down from crotch
+  "C 124,296 130,320 134,350",
+  "C 138,380 142,408 144,430",
 
-  // Crotch / inner legs
-  "L 80,280",
-  "L 120,280",
+  // Right foot
+  "C 144,436 146,442 150,448",
+  "C 154,454 160,458 164,462",
+  "C 168,466 166,470 162,470",
+  "C 160,470 156,468 152,460",
+  "C 148,454 146,444 146,430",
+  // Right shin + thigh
+  "C 146,410 144,380 140,350",
+  "C 136,320 134,296 132,272",
 
-  // Right leg
-  "L 120,430",
-  "C 120,436 122,442 126,448",
-  "C 130,454 136,458 140,462",
-  "C 144,466 142,470 138,470",
-  "C 136,470 132,468 128,460",
-  "C 124,454 122,444 122,430",
-  "C 122,410 124,390 126,370",
-  "C 128,340 130,310 132,280",
-
-  // Right waist + torso
-  "C 132,260 130,240 130,220",
+  // Right waist + torso (right hip slightly lower — contrapposto)
+  "C 132,254 130,236 130,220",
   "C 132,196 134,172 136,148",
   "L 138,128",
   "C 140,136 142,148 144,164",
@@ -85,6 +86,9 @@ const SILHOUETTE_PATH = [
   "C 164,164 162,140 156,120",
   "L 152,118",
   "C 148,108 128,100 108,98",
+
+  // Close back to neck
+  "L 108,84",
   "Z",
 ].join(" ");
 
@@ -419,7 +423,7 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
 
       // --- Scale silhouette to fit canvas ---
       const aspect = SILHOUETTE_VIEWBOX_W / SILHOUETTE_VIEWBOX_H;
-      const figureHeight = h * 0.6;
+      const figureHeight = h * 0.65;
       const figureW = figureHeight * aspect;
       const offsetX = (w - figureW) / 2;
       const offsetY = (h - figureHeight) * 0.35;
@@ -480,7 +484,7 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
 
         // Trailing glow during morph
         if (morphT > 0 && morphT < 1) {
-          ctx!.shadowBlur = 3;
+          ctx!.shadowBlur = 4;
           ctx!.shadowColor = `rgba(${col.r}, ${col.g}, ${col.b}, 0.3)`;
         } else {
           ctx!.shadowBlur = 0;
@@ -489,7 +493,8 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
         // Soft glow rendering with radial gradient
         const grad = ctx!.createRadialGradient(x, y, 0, x, y, radius * 2.5);
         grad.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity})`);
-        grad.addColorStop(0.4, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.6})`);
+        grad.addColorStop(0.3, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.7})`);
+        grad.addColorStop(0.8, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.2})`);
         grad.addColorStop(1, `rgba(${col.r}, ${col.g}, ${col.b}, 0)`);
 
         ctx!.beginPath();
@@ -522,7 +527,7 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
 
             const dx = ax - bx;
             const dy = ay - by;
-            if (dx * dx + dy * dy < 3000) {
+            if (dx * dx + dy * dy < 4000) {
               ctx!.strokeStyle = `rgba(99, 102, 241, ${0.06 * lineAlpha})`;
               ctx!.beginPath();
               ctx!.moveTo(ax, ay);
