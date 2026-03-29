@@ -323,9 +323,11 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<MorphParticle[]>([]);
   const animationRef = useRef<number>(0);
+  const progressRef = useRef<number>(progress);
+  const timeRef = useRef<number>(0);
 
-  // Suppress unused variable lint — progress will be consumed by Task 2
-  void progress;
+  // Keep progressRef in sync without re-running the effect
+  progressRef.current = progress;
 
   const initParticles = useCallback(() => {
     const canvas = canvasRef.current;
@@ -388,9 +390,149 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
 
     window.addEventListener("resize", resize);
 
-    // Placeholder render loop — Task 2 will implement actual rendering
+    // Color interpolation between INDIGO and NEON
+    function lerpColor(t: number): { r: number; g: number; b: number } {
+      const clamped = Math.max(0, Math.min(1, t));
+      return {
+        r: Math.round(INDIGO.r + (NEON.r - INDIGO.r) * clamped),
+        g: Math.round(INDIGO.g + (NEON.g - INDIGO.g) * clamped),
+        b: Math.round(INDIGO.b + (NEON.b - INDIGO.b) * clamped),
+      };
+    }
+
+    function easeOutCubic(t: number): number {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
     function animate() {
       ctx!.clearRect(0, 0, w, h);
+      timeRef.current += 1;
+      const time = timeRef.current;
+
+      const particles = particlesRef.current;
+      if (particles.length === 0) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      const currentProgress = progressRef.current;
+
+      // --- Scale silhouette to fit canvas ---
+      const aspect = SILHOUETTE_VIEWBOX_W / SILHOUETTE_VIEWBOX_H;
+      const figureHeight = h * 0.6;
+      const figureW = figureHeight * aspect;
+      const offsetX = (w - figureW) / 2;
+      const offsetY = (h - figureHeight) * 0.35;
+
+      // --- Global morph progress: map scroll 0.1–0.7 to 0–1 ---
+      const morphT = Math.max(0, Math.min(1, (currentProgress - 0.1) / 0.6));
+
+      // --- Connection lines setup ---
+      const showLines = currentProgress > 0.1 && currentProgress < 0.7;
+      let lineAlpha = 0;
+      if (showLines) {
+        if (currentProgress < 0.3) {
+          lineAlpha = (currentProgress - 0.1) / 0.2; // fade in
+        } else if (currentProgress < 0.6) {
+          lineAlpha = 1; // full
+        } else {
+          lineAlpha = (0.7 - currentProgress) / 0.1; // fade out
+        }
+      }
+
+      // --- Render each particle ---
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // Per-particle staggered morph
+        const rawT = Math.max(0, Math.min(1, (morphT - p.arrivalOrder * 0.5) / (1 - p.arrivalOrder * 0.5)));
+        const easedT = easeOutCubic(rawT);
+
+        // Interpolate position
+        let x = p.scatteredX * w + (p.targetX * figureW + offsetX - p.scatteredX * w) * easedT;
+        let y = p.scatteredY * h + (p.targetY * figureHeight + offsetY - p.scatteredY * h) * easedT;
+
+        // Brownian drift (scattered state)
+        if (easedT < 1) {
+          const driftScale = 1 - easedT;
+          p.driftVx += (Math.random() - 0.5) * 0.1;
+          p.driftVy += (Math.random() - 0.5) * 0.1;
+          p.driftVx *= 0.98;
+          p.driftVy *= 0.98;
+          x += p.driftVx * driftScale * 3;
+          y += p.driftVy * driftScale * 3;
+        }
+
+        // Breathing drift (formed state)
+        if (easedT > 0.8) {
+          const breathScale = (easedT - 0.8) / 0.2;
+          x += Math.sin(time * 0.02 + p.breathPhase) * 1.5 * breathScale;
+          y += Math.cos(time * 0.025 + p.breathPhase * 1.3) * 1.0 * breathScale;
+        }
+
+        // Color interpolation
+        const colorT = easedT * p.colorPhase;
+        const col = lerpColor(colorT);
+
+        // Opacity: brighter when formed
+        const opacity = p.baseOpacity * (0.5 + easedT * 0.5);
+        const radius = p.size;
+
+        // Trailing glow during morph
+        if (morphT > 0 && morphT < 1) {
+          ctx!.shadowBlur = 3;
+          ctx!.shadowColor = `rgba(${col.r}, ${col.g}, ${col.b}, 0.3)`;
+        } else {
+          ctx!.shadowBlur = 0;
+        }
+
+        // Soft glow rendering with radial gradient
+        const grad = ctx!.createRadialGradient(x, y, 0, x, y, radius * 2.5);
+        grad.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity})`);
+        grad.addColorStop(0.4, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.6})`);
+        grad.addColorStop(1, `rgba(${col.r}, ${col.g}, ${col.b}, 0)`);
+
+        ctx!.beginPath();
+        ctx!.arc(x, y, radius * 2.5, 0, Math.PI * 2);
+        ctx!.fillStyle = grad;
+        ctx!.fill();
+      }
+
+      // Reset shadow after particles
+      ctx!.shadowBlur = 0;
+
+      // --- Connection lines ---
+      if (showLines && lineAlpha > 0) {
+        const step = Math.max(1, Math.floor(particles.length / 500));
+        ctx!.lineWidth = 0.5;
+
+        for (let i = 0; i < particles.length; i += step) {
+          const pA = particles[i];
+          const rawTA = Math.max(0, Math.min(1, (morphT - pA.arrivalOrder * 0.5) / (1 - pA.arrivalOrder * 0.5)));
+          const easedTA = easeOutCubic(rawTA);
+          const ax = pA.scatteredX * w + (pA.targetX * figureW + offsetX - pA.scatteredX * w) * easedTA;
+          const ay = pA.scatteredY * h + (pA.targetY * figureHeight + offsetY - pA.scatteredY * h) * easedTA;
+
+          for (let j = i + step; j < particles.length; j += step) {
+            const pB = particles[j];
+            const rawTB = Math.max(0, Math.min(1, (morphT - pB.arrivalOrder * 0.5) / (1 - pB.arrivalOrder * 0.5)));
+            const easedTB = easeOutCubic(rawTB);
+            const bx = pB.scatteredX * w + (pB.targetX * figureW + offsetX - pB.scatteredX * w) * easedTB;
+            const by = pB.scatteredY * h + (pB.targetY * figureHeight + offsetY - pB.scatteredY * h) * easedTB;
+
+            const dx = ax - bx;
+            const dy = ay - by;
+            if (dx * dx + dy * dy < 3000) {
+              ctx!.strokeStyle = `rgba(99, 102, 241, ${0.06 * lineAlpha})`;
+              ctx!.beginPath();
+              ctx!.moveTo(ax, ay);
+              ctx!.lineTo(bx, by);
+              ctx!.stroke();
+            }
+          }
+        }
+      }
+
       animationRef.current = requestAnimationFrame(animate);
     }
 
