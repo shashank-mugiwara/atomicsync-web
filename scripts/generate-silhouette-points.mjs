@@ -55,12 +55,11 @@ function isInside(x, y) {
 
 function poissonDiskSample(targetCount) {
   const area = VIEWBOX_W * VIEWBOX_H;
-  const baseMin = Math.sqrt(area / (targetCount * Math.PI)) * 1.2;
+  const baseMin = Math.sqrt(area / (targetCount * Math.PI)) * 0.9; // tighter packing
   const k = 30;
-  const density = (y) => {
-    const t = y / VIEWBOX_H;
-    return t < 0.4 ? 0.75 : t < 0.7 ? 1.0 : 1.25;
-  };
+  // Uniform density — legs need just as many particles as torso
+  // since they're thinner geometry
+  const density = () => 1.0;
   const cs = baseMin / Math.SQRT2;
   const gW = Math.ceil(VIEWBOX_W / cs);
   const gH = Math.ceil(VIEWBOX_H / cs);
@@ -109,7 +108,7 @@ function poissonDiskSample(targetCount) {
 }
 
 function fillGaps(points) {
-  const cs = 12;
+  const cs = 8; // smaller cells = finer gap coverage
   const cols = Math.ceil(VIEWBOX_W / cs);
   const rows = Math.ceil(VIEWBOX_H / cs);
   const occ = new Set();
@@ -131,11 +130,12 @@ function buildParticles(points) {
     const d = Math.sqrt((px-hx)**2 + (py-hy)**2);
     const nd = Math.min(d / maxD, 1);
     const yr = py / VIEWBOX_H;
-    const df = yr < 0.4 ? 0.3 : yr < 0.7 ? 0.6 : 1.0;
+    // Larger base size so particles are visible when scattered
+    const df = yr < 0.4 ? 0.5 : yr < 0.7 ? 0.7 : 0.9;
     return [
       +(px / VIEWBOX_W).toFixed(4),
       +(py / VIEWBOX_H).toFixed(4),
-      +(1 + df * 4).toFixed(2),
+      +(2 + df * 4).toFixed(2), // range 2-6 instead of 1-5
       +(0.4 + Math.random() * 0.6).toFixed(2),
       +(1 - nd).toFixed(3),
       +nd.toFixed(3),
@@ -145,7 +145,7 @@ function buildParticles(points) {
 }
 
 console.error("Generating...");
-const raw = poissonDiskSample(2000);
+const raw = poissonDiskSample(4000);
 console.error(`Sampled: ${raw.length}`);
 const filled = fillGaps(raw);
 console.error(`Filled: ${filled.length}`);

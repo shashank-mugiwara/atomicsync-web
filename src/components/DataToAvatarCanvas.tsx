@@ -54,9 +54,11 @@ const VERTEX_SHADER = `
     vec2 clipPos = (pos / u_resolution) * 2.0 - 1.0;
     clipPos.y = -clipPos.y;
     gl_Position = vec4(clipPos, 0.0, 1.0);
-    gl_PointSize = a_size * (1.0 + easedT * 1.5);
+    // Scattered: visible size. Formed: grows larger.
+    gl_PointSize = a_size * (1.5 + easedT * 1.0);
 
-    v_opacity = a_opacity * (0.3 + easedT * 0.7);
+    // Scattered: clearly visible (0.6 base). Formed: full brightness.
+    v_opacity = a_opacity * (0.6 + easedT * 0.4);
     v_colorT = clamp(easedT * a_colorPhase, 0.0, 1.0);
   }
 `;
