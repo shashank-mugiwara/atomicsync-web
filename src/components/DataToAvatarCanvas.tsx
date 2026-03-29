@@ -10,6 +10,49 @@ const INDIGO = { r: 99, g: 102, b: 241 }; // #6366f1
 const NEON = { r: 0, g: 255, b: 136 };    // #00ff88
 
 // ---------------------------------------------------------------------------
+// Pre-rendered gradient stamps (avoids per-particle createRadialGradient)
+// ---------------------------------------------------------------------------
+const STAMP_COUNT = 20;
+const STAMP_SIZE = 20; // px — diameter of each stamp canvas
+
+interface GradientStamp {
+  canvas: HTMLCanvasElement;
+  r: number;
+  g: number;
+  b: number;
+}
+
+function buildStampCache(): GradientStamp[] {
+  const stamps: GradientStamp[] = [];
+  for (let i = 0; i < STAMP_COUNT; i++) {
+    const t = i / (STAMP_COUNT - 1);
+    const r = Math.round(INDIGO.r + (NEON.r - INDIGO.r) * t);
+    const g = Math.round(INDIGO.g + (NEON.g - INDIGO.g) * t);
+    const b = Math.round(INDIGO.b + (NEON.b - INDIGO.b) * t);
+
+    const c = document.createElement("canvas");
+    c.width = STAMP_SIZE;
+    c.height = STAMP_SIZE;
+    const sCtx = c.getContext("2d");
+    if (!sCtx || typeof sCtx.createRadialGradient !== "function") continue;
+
+    const half = STAMP_SIZE / 2;
+    const grad = sCtx.createRadialGradient(half, half, 0, half, half, half);
+    grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+    grad.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.7)`);
+    grad.addColorStop(0.8, `rgba(${r}, ${g}, ${b}, 0.2)`);
+    grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+    sCtx.fillStyle = grad;
+    if (typeof sCtx.fillRect === "function") {
+      sCtx.fillRect(0, 0, STAMP_SIZE, STAMP_SIZE);
+    }
+
+    stamps.push({ canvas: c, r, g, b });
+  }
+  return stamps;
+}
+
+// ---------------------------------------------------------------------------
 // SVG silhouette path — contrapposto human, 200x500 viewBox
 // ---------------------------------------------------------------------------
 const SILHOUETTE_PATH = [
@@ -328,7 +371,8 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
   const particlesRef = useRef<MorphParticle[]>([]);
   const animationRef = useRef<number>(0);
   const progressRef = useRef<number>(progress);
-  const timeRef = useRef<number>(0);
+  const timeRef = useRef<number>(0); // milliseconds from performance.now()
+  const stampCacheRef = useRef<GradientStamp[]>([]);
 
   // Keep progressRef in sync without re-running the animation effect
   useEffect(() => {
@@ -373,47 +417,47 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
+    const maybeCtx = canvas.getContext("2d", { alpha: true });
+    if (!maybeCtx) return;
+    // Alias to help TS narrow inside closures (guard above ensures non-null)
+    const ctx: CanvasRenderingContext2D = maybeCtx;
 
     let w = 0;
     let h = 0;
 
     function resize() {
-      const rect = canvas!.parentElement!.getBoundingClientRect();
+      const parent = canvas?.parentElement;
+      if (!canvas || !parent) return;
+      const rect = parent.getBoundingClientRect();
       w = rect.width;
       h = rect.height;
       const dpr = Math.min(window.devicePixelRatio, 2);
-      canvas!.width = w * dpr;
-      canvas!.height = h * dpr;
-      canvas!.style.width = `${w}px`;
-      canvas!.style.height = `${h}px`;
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     resize();
     initParticles();
 
-    window.addEventListener("resize", resize);
-
-    // Color interpolation between INDIGO and NEON
-    function lerpColor(t: number): { r: number; g: number; b: number } {
-      const clamped = Math.max(0, Math.min(1, t));
-      return {
-        r: Math.round(INDIGO.r + (NEON.r - INDIGO.r) * clamped),
-        g: Math.round(INDIGO.g + (NEON.g - INDIGO.g) * clamped),
-        b: Math.round(INDIGO.b + (NEON.b - INDIGO.b) * clamped),
-      };
+    // Build gradient stamp cache on first mount
+    if (stampCacheRef.current.length === 0) {
+      stampCacheRef.current = buildStampCache();
     }
+    const stamps = stampCacheRef.current;
+
+    window.addEventListener("resize", resize);
 
     function easeOutCubic(t: number): number {
       return 1 - Math.pow(1 - t, 3);
     }
 
     function animate() {
-      ctx!.clearRect(0, 0, w, h);
-      timeRef.current += 1;
-      const time = timeRef.current;
+      ctx.clearRect(0, 0, w, h);
+      const time = performance.now() / 1000; // seconds
+      timeRef.current = time;
 
       const particles = particlesRef.current;
       if (particles.length === 0) {
@@ -469,16 +513,20 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
           y += p.driftVy * driftScale * 3;
         }
 
-        // Breathing drift (formed state)
+        // Breathing drift (formed state) — time-based for frame-rate independence
         if (easedT > 0.8) {
           const breathScale = (easedT - 0.8) / 0.2;
-          x += Math.sin(time * 0.02 + p.breathPhase) * 1.5 * breathScale;
-          y += Math.cos(time * 0.025 + p.breathPhase * 1.3) * 1.0 * breathScale;
+          x += Math.sin(time * 1.2 + p.breathPhase) * 1.5 * breathScale;
+          y += Math.cos(time * 1.5 + p.breathPhase * 1.3) * 1.0 * breathScale;
         }
 
-        // Color interpolation
-        const colorT = easedT * p.colorPhase;
-        const col = lerpColor(colorT);
+        // Color interpolation — pick nearest pre-rendered stamp
+        const colorT = Math.max(0, Math.min(1, easedT * p.colorPhase));
+        const stampIdx = Math.min(
+          STAMP_COUNT - 1,
+          Math.round(colorT * (STAMP_COUNT - 1)),
+        );
+        const stamp = stamps[stampIdx];
 
         // Opacity: brighter when formed
         const opacity = p.baseOpacity * (0.5 + easedT * 0.5);
@@ -486,32 +534,26 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
 
         // Trailing glow during morph
         if (morphT > 0 && morphT < 1) {
-          ctx!.shadowBlur = 4;
-          ctx!.shadowColor = `rgba(${col.r}, ${col.g}, ${col.b}, 0.3)`;
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = `rgba(${stamp.r}, ${stamp.g}, ${stamp.b}, 0.3)`;
         } else {
-          ctx!.shadowBlur = 0;
+          ctx.shadowBlur = 0;
         }
 
-        // Soft glow rendering with radial gradient
-        const grad = ctx!.createRadialGradient(x, y, 0, x, y, radius * 2.5);
-        grad.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity})`);
-        grad.addColorStop(0.3, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.7})`);
-        grad.addColorStop(0.8, `rgba(${col.r}, ${col.g}, ${col.b}, ${opacity * 0.2})`);
-        grad.addColorStop(1, `rgba(${col.r}, ${col.g}, ${col.b}, 0)`);
-
-        ctx!.beginPath();
-        ctx!.arc(x, y, radius * 2.5, 0, Math.PI * 2);
-        ctx!.fillStyle = grad;
-        ctx!.fill();
+        // Draw pre-rendered gradient stamp scaled to particle size
+        const drawSize = radius * 5; // diameter = radius * 2.5 * 2
+        ctx.globalAlpha = opacity;
+        ctx.drawImage(stamp.canvas, x - drawSize / 2, y - drawSize / 2, drawSize, drawSize);
+        ctx.globalAlpha = 1;
       }
 
       // Reset shadow after particles
-      ctx!.shadowBlur = 0;
+      ctx.shadowBlur = 0;
 
       // --- Connection lines ---
       if (showLines && lineAlpha > 0) {
         const step = Math.max(1, Math.floor(particles.length / 500));
-        ctx!.lineWidth = 0.5;
+        ctx.lineWidth = 0.5;
 
         for (let i = 0; i < particles.length; i += step) {
           const pA = particles[i];
@@ -530,11 +572,11 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
             const dx = ax - bx;
             const dy = ay - by;
             if (dx * dx + dy * dy < 4000) {
-              ctx!.strokeStyle = `rgba(99, 102, 241, ${0.06 * lineAlpha})`;
-              ctx!.beginPath();
-              ctx!.moveTo(ax, ay);
-              ctx!.lineTo(bx, by);
-              ctx!.stroke();
+              ctx.strokeStyle = `rgba(99, 102, 241, ${0.06 * lineAlpha})`;
+              ctx.beginPath();
+              ctx.moveTo(ax, ay);
+              ctx.lineTo(bx, by);
+              ctx.stroke();
             }
           }
         }
@@ -559,6 +601,3 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
     />
   );
 }
-
-// Re-export constants for use by other tasks
-export { INDIGO, NEON, SILHOUETTE_PATH, SILHOUETTE_VIEWBOX_W, SILHOUETTE_VIEWBOX_H };
