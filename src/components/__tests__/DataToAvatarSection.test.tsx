@@ -4,7 +4,8 @@ import { DataToAvatarSection } from "@/components/DataToAvatarSection";
 
 // Mock Path2D
 vi.stubGlobal("Path2D", class Path2D {
-  constructor(_path?: string) {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(path?: string) {}
 });
 
 // Mock requestAnimationFrame

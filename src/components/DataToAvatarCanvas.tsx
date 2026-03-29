@@ -330,8 +330,10 @@ export function DataToAvatarCanvas({ progress, className }: DataToAvatarCanvasPr
   const progressRef = useRef<number>(progress);
   const timeRef = useRef<number>(0);
 
-  // Keep progressRef in sync without re-running the effect
-  progressRef.current = progress;
+  // Keep progressRef in sync without re-running the animation effect
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   const initParticles = useCallback(() => {
     const canvas = canvasRef.current;
