@@ -54,11 +54,12 @@ const VERTEX_SHADER = `
     vec2 clipPos = (pos / u_resolution) * 2.0 - 1.0;
     clipPos.y = -clipPos.y;
     gl_Position = vec4(clipPos, 0.0, 1.0);
-    // Scattered: visible size. Formed: grows larger.
-    gl_PointSize = a_size * (1.5 + easedT * 1.0);
 
-    // Scattered: clearly visible (0.6 base). Formed: full brightness.
-    v_opacity = a_opacity * (0.6 + easedT * 0.4);
+    // Crisp dots: moderate size, slightly larger when formed
+    gl_PointSize = a_size * (1.0 + easedT * 0.5);
+
+    // Good visibility in both states
+    v_opacity = a_opacity * (0.5 + easedT * 0.5);
     v_colorT = clamp(easedT * a_colorPhase, 0.0, 1.0);
   }
 `;
@@ -71,12 +72,18 @@ const FRAGMENT_SHADER = `
   varying float v_colorT;
 
   void main() {
+    // Distance from center (0 at center, 1 at edge)
     float dist = length(gl_PointCoord - vec2(0.5)) * 2.0;
-    float alpha = 1.0 - smoothstep(0.0, 1.0, dist);
-    alpha += 0.3 * (1.0 - smoothstep(0.3, 1.0, dist));
-    alpha = clamp(alpha, 0.0, 1.0);
+
+    // Crisp circle with sharp edge and thin soft fringe
+    // Core: solid up to 0.6 radius, then quick falloff
+    float alpha = 1.0 - smoothstep(0.5, 0.9, dist);
+
+    // Discard fully transparent pixels (performance + avoids blending artifacts)
+    if (alpha < 0.01) discard;
+
     vec3 color = mix(u_indigo, u_neon, v_colorT);
-    gl_FragColor = vec4(color, alpha * v_opacity);
+    gl_FragColor = vec4(color * alpha * v_opacity, alpha * v_opacity);
   }
 `;
 
@@ -128,13 +135,13 @@ function buildBuffers(gl: WebGLRenderingContext, dpr: number) {
     const p = PARTICLES[i];
     scattered[i * 2] = Math.random();
     scattered[i * 2 + 1] = Math.random();
-    target[i * 2] = p[0];     // tx
-    target[i * 2 + 1] = p[1]; // ty
-    size[i] = p[2] * dpr;     // size scaled by DPR
-    opacity[i] = p[3];        // opacity
-    colorPhase[i] = p[4];     // colorPhase
-    arrivalOrder[i] = p[5];   // arrivalOrder
-    breathPhase[i] = p[6];    // breathPhase
+    target[i * 2] = p[0];
+    target[i * 2 + 1] = p[1];
+    size[i] = p[2] * dpr;
+    opacity[i] = p[3];
+    colorPhase[i] = p[4];
+    arrivalOrder[i] = p[5];
+    breathPhase[i] = p[6];
   }
 
   function upload(data: Float32Array): WebGLBuffer | null {
@@ -188,14 +195,19 @@ export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvat
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
 
-    const glCtx = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: false });
+    const glCtx = canvas.getContext("webgl", {
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: false,
+      powerPreference: "high-performance",
+    });
     if (!glCtx) return;
-    // Non-null alias for use in closures (guard above ensures it's valid)
     const gl = glCtx;
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // Premultiplied alpha additive blending — bright, crisp particle overlaps
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
     const program = createProgram(gl, VERTEX_SHADER, FRAGMENT_SHADER);
     if (!program) return;
@@ -203,7 +215,7 @@ export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvat
     const bufs = buildBuffers(gl, dpr);
     if (!bufs.scattered || !bufs.target) return;
 
-    // Attribute locations (cached)
+    // Cache locations
     const aScattered = gl.getAttribLocation(program, "a_scattered");
     const aTarget = gl.getAttribLocation(program, "a_target");
     const aSize = gl.getAttribLocation(program, "a_size");
@@ -212,7 +224,6 @@ export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvat
     const aArrivalOrder = gl.getAttribLocation(program, "a_arrivalOrder");
     const aBreathPhase = gl.getAttribLocation(program, "a_breathPhase");
 
-    // Uniform locations (cached)
     const uMorphT = gl.getUniformLocation(program, "u_morphT");
     const uTime = gl.getUniformLocation(program, "u_time");
     const uResolution = gl.getUniformLocation(program, "u_resolution");
@@ -223,11 +234,9 @@ export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvat
 
     gl.useProgram(program);
 
-    // Static uniforms
     gl.uniform3f(uIndigo, INDIGO_R, INDIGO_G, INDIGO_B);
     gl.uniform3f(uNeon, NEON_R, NEON_G, NEON_B);
 
-    // Bind attribute buffers (static — only need to do once)
     const bindAttr = (loc: number, buf: WebGLBuffer | null, components: number) => {
       if (loc < 0 || !buf) return;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -243,7 +252,6 @@ export function DataToAvatarCanvas({ progress, isActive, className }: DataToAvat
     bindAttr(aArrivalOrder, bufs.arrivalOrder, 1);
     bindAttr(aBreathPhase, bufs.breathPhase, 1);
 
-    // Figure dimensions (static until resize)
     const aspect = 200 / 500;
     const figH = h * 0.65;
     const figW = figH * aspect;
