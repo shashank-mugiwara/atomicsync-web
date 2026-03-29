@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ParticleField } from "@/components/ParticleField";
+import { CompanionVoxel } from "@/components/CompanionVoxel";
 
 interface EvolutionStage {
   name: string;
@@ -12,185 +12,6 @@ interface EvolutionStage {
   avatar: React.ReactNode;
 }
 
-function BeginnerAvatar() {
-  const grid = [
-    "___XX___",
-    "___XX___",
-    "__XXXX__",
-    "___XX___",
-    "___XX___",
-    "__X__X__",
-  ];
-  return (
-    <div className="flex flex-col items-center justify-end" style={{ width: 120, height: 140 }}>
-      {grid.map((row, ri) => (
-        <div key={ri} className="flex">
-          {row.split("").map((cell, ci) => (
-            <div
-              key={ci}
-              style={{
-                width: 8,
-                height: 8,
-                backgroundColor: cell === "X" ? "#666" : "transparent",
-                borderRadius: 1,
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ActiveAvatar() {
-  const grid = [
-    "___XXX___",
-    "___XXX___",
-    "__XXXXX__",
-    "__XXXXX__",
-    "____X____",
-    "___XXX___",
-    "___XXX___",
-    "__XX_XX__",
-    "__X___X__",
-  ];
-  const headRows = 2;
-  return (
-    <div className="flex flex-col items-center justify-end" style={{ width: 120, height: 140 }}>
-      {grid.map((row, ri) => (
-        <div key={ri} className="flex">
-          {row.split("").map((cell, ci) => (
-            <div
-              key={ci}
-              style={{
-                width: 8,
-                height: 8,
-                backgroundColor:
-                  cell === "X"
-                    ? ri < headRows
-                      ? "#6366f1"
-                      : "#888"
-                    : "transparent",
-                borderRadius: 1,
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AthleteAvatar() {
-  const grid = [
-    "____XXX____",
-    "___XXXXX___",
-    "___XXXXX___",
-    "__XXXXXXX__",
-    "___XXXXX___",
-    "____XXX____",
-    "___XXXXX___",
-    "__XXXXXXX__",
-    "__XXXXXXX__",
-    "___XXXXX___",
-    "__XX___XX__",
-    "__XX___XX__",
-    "_XX_____XX_",
-  ];
-  const headRows = 3;
-  const bodyStart = 5;
-  return (
-    <div className="flex flex-col items-center justify-end" style={{ width: 120, height: 140 }}>
-      {grid.map((row, ri) => (
-        <div key={ri} className="flex">
-          {row.split("").map((cell, ci) => (
-            <div
-              key={ci}
-              style={{
-                width: 8,
-                height: 8,
-                backgroundColor:
-                  cell === "X"
-                    ? ri < headRows
-                      ? "#00ff88"
-                      : ri < bodyStart
-                        ? "#6366f1"
-                        : "#4f46e5"
-                    : "transparent",
-                borderRadius: 1,
-                boxShadow:
-                  cell === "X" && ri < headRows
-                    ? "0 0 4px rgba(0,255,136,0.4)"
-                    : "none",
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ChampionAvatar() {
-  const grid = [
-    "_____X_____",
-    "____XXX____",
-    "___XXXXX___",
-    "___XXXXX___",
-    "____XXX____",
-    "___XXXXX___",
-    "__XXXXXXX__",
-    "_XXXXXXXXX_",
-    "__XXXXXXX__",
-    "___XXXXX___",
-    "___XXXXX___",
-    "__XXX_XXX__",
-    "__XX___XX__",
-    "_XXX___XXX_",
-  ];
-  const crownRows = 1;
-  const headRows = 4;
-  const bodyStart = 6;
-  return (
-    <div className="flex flex-col items-center justify-end" style={{ width: 120, height: 140 }}>
-      {grid.map((row, ri) => (
-        <div key={ri} className="flex">
-          {row.split("").map((cell, ci) => (
-            <div
-              key={ci}
-              style={{
-                width: 8,
-                height: 8,
-                backgroundColor:
-                  cell === "X"
-                    ? ri < crownRows
-                      ? "#fbbf24"
-                      : ri < headRows
-                        ? "#fafafa"
-                        : ri < bodyStart
-                          ? "#00ff88"
-                          : "#6366f1"
-                    : "transparent",
-                borderRadius: 1,
-                boxShadow:
-                  cell === "X"
-                    ? ri < crownRows
-                      ? "0 0 6px rgba(251,191,36,0.6)"
-                      : ri < headRows
-                        ? "0 0 4px rgba(250,250,250,0.3)"
-                        : ri < bodyStart
-                          ? "0 0 6px rgba(0,255,136,0.5)"
-                          : "0 0 4px rgba(99,102,241,0.4)"
-                    : "none",
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const stages: EvolutionStage[] = [
   {
     name: "BEGINNER",
@@ -199,7 +20,7 @@ const stages: EvolutionStage[] = [
       "Your journey begins. Your avatar wakes up with you, learning your rhythm. Every small step counts.",
     dotColor: "#525252",
     nameColor: "#666",
-    avatar: <BeginnerAvatar />,
+    avatar: <CompanionVoxel preset="beginner" size="sm" className="min-h-[150px] justify-center" />,
   },
   {
     name: "ACTIVE",
@@ -208,7 +29,7 @@ const stages: EvolutionStage[] = [
       "Your companion starts to shine. Consistent health choices unlock new looks and expressions.",
     dotColor: "#6366f1",
     nameColor: "#6366f1",
-    avatar: <ActiveAvatar />,
+    avatar: <CompanionVoxel preset="active-stage" size="sm" className="min-h-[150px] justify-center" />,
   },
   {
     name: "ATHLETE",
@@ -217,7 +38,7 @@ const stages: EvolutionStage[] = [
       "Your avatar radiates confidence. It reflects the dedication you\u2019ve built \u2014 and everyone can see it.",
     dotColor: "#00ff88",
     nameColor: "#00ff88",
-    avatar: <AthleteAvatar />,
+    avatar: <CompanionVoxel preset="athlete" size="sm" className="min-h-[150px] justify-center" />,
   },
   {
     name: "CHAMPION",
@@ -226,7 +47,7 @@ const stages: EvolutionStage[] = [
       "Legendary. Your avatar is a masterpiece \u2014 a living reflection of your commitment to health.",
     dotColor: "#fafafa",
     nameColor: "#fafafa",
-    avatar: <ChampionAvatar />,
+    avatar: <CompanionVoxel preset="champion" size="sm" className="min-h-[150px] justify-center" />,
   },
 ];
 
@@ -240,16 +61,6 @@ export function EvolutionSection() {
         color: "#fafafa",
       }}
     >
-      {/* Particle field background */}
-      <ParticleField
-        className="z-0"
-        particleCount={600}
-        color="255, 255, 255"
-        maxSize={1.8}
-        speed={0.2}
-        clustered={true}
-      />
-
       {/* Crosshair decoration top-right */}
       <div
         className="pointer-events-none absolute"

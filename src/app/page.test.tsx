@@ -30,10 +30,6 @@ vi.mock("@/components/PricingSection", () => ({
   PricingSection: () => <section>Pricing</section>,
 }));
 
-vi.mock("@/components/DataToAvatarSection", () => ({
-  DataToAvatarSection: () => <section>DataToAvatar</section>,
-}));
-
 vi.mock("@/components/Footer", () => ({
   Footer: () => <footer>Footer</footer>,
 }));

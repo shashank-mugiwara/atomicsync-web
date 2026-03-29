@@ -1,128 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BetaModal } from "@/components/BetaModal";
+import { CompanionVoxel, type CompanionVoxelPresetId } from "@/components/CompanionVoxel";
 import { cn } from "@/lib/utils";
-
-/* ------------------------------------------------------------------ */
-/*  Voxel Avatar — CSS-only blocky humanoid (meebits-inspired)        */
-/* ------------------------------------------------------------------ */
-
-const INDIGO = "#6366f1";
-const NEON = "#00ff88";
-const BLACK = "#0a0a0a";
-const WHITE = "#fafafa";
-
-type Block = {
-  row: number;
-  col: number;
-  color: string;
-  span?: number; // colSpan, default 1
-};
-
-/**
- * A 7-column, 12-row pixel grid that draws a blocky humanoid avatar.
- * Each Block occupies one cell (or `span` cells) in the grid.
- */
-const AVATAR_BLOCKS: Block[] = [
-  // ---- head (rows 0-2) ----
-  { row: 0, col: 2, color: INDIGO },
-  { row: 0, col: 3, color: INDIGO },
-  { row: 0, col: 4, color: INDIGO },
-  { row: 1, col: 2, color: INDIGO },
-  { row: 1, col: 3, color: WHITE },
-  { row: 1, col: 4, color: INDIGO },
-  { row: 2, col: 2, color: INDIGO },
-  { row: 2, col: 3, color: NEON },
-  { row: 2, col: 4, color: INDIGO },
-
-  // ---- neck (row 3) ----
-  { row: 3, col: 3, color: INDIGO },
-
-  // ---- shoulders + torso (rows 4-6) ----
-  { row: 4, col: 1, color: NEON },
-  { row: 4, col: 2, color: BLACK },
-  { row: 4, col: 3, color: BLACK },
-  { row: 4, col: 4, color: BLACK },
-  { row: 4, col: 5, color: NEON },
-
-  { row: 5, col: 2, color: BLACK },
-  { row: 5, col: 3, color: NEON },
-  { row: 5, col: 4, color: BLACK },
-
-  { row: 6, col: 2, color: BLACK },
-  { row: 6, col: 3, color: BLACK },
-  { row: 6, col: 4, color: BLACK },
-
-  // ---- waist (row 7) ----
-  { row: 7, col: 2, color: INDIGO },
-  { row: 7, col: 3, color: INDIGO },
-  { row: 7, col: 4, color: INDIGO },
-
-  // ---- legs (rows 8-10) ----
-  { row: 8, col: 2, color: INDIGO },
-  { row: 8, col: 4, color: INDIGO },
-
-  { row: 9, col: 2, color: INDIGO },
-  { row: 9, col: 4, color: INDIGO },
-
-  { row: 10, col: 2, color: INDIGO },
-  { row: 10, col: 4, color: INDIGO },
-
-  // ---- feet (row 11) ----
-  { row: 11, col: 1, color: BLACK },
-  { row: 11, col: 2, color: BLACK },
-  { row: 11, col: 4, color: BLACK },
-  { row: 11, col: 5, color: BLACK },
-
-  // ---- arms (hanging) ----
-  { row: 5, col: 1, color: INDIGO },
-  { row: 5, col: 5, color: INDIGO },
-  { row: 6, col: 1, color: INDIGO },
-  { row: 6, col: 5, color: INDIGO },
-  { row: 7, col: 1, color: NEON },
-  { row: 7, col: 5, color: NEON },
-];
-
-const GRID_COLS = 7;
-const GRID_ROWS = 12;
-const CELL_SIZE_CLASS = "w-[18px] h-[18px] md:w-[22px] md:h-[22px] lg:w-[28px] lg:h-[28px]";
-
-function VoxelAvatar() {
-  // Build a 2D lookup for fast rendering
-  const lookup = new Map<string, string>();
-  for (const b of AVATAR_BLOCKS) {
-    lookup.set(`${b.row}-${b.col}`, b.color);
-  }
-
-  return (
-    <div
-      className="grid gap-[2px] md:gap-[3px]"
-      style={{
-        gridTemplateColumns: `repeat(${GRID_COLS}, auto)`,
-        gridTemplateRows: `repeat(${GRID_ROWS}, auto)`,
-      }}
-    >
-      {Array.from({ length: GRID_ROWS * GRID_COLS }).map((_, i) => {
-        const row = Math.floor(i / GRID_COLS);
-        const col = i % GRID_COLS;
-        const color = lookup.get(`${row}-${col}`);
-        return (
-          <div
-            key={i}
-            className={cn(CELL_SIZE_CLASS, "rounded-[2px]")}
-            style={{
-              backgroundColor: color ?? "transparent",
-              boxShadow: color
-                ? `inset -2px -2px 0 rgba(0,0,0,0.15), inset 2px 2px 0 rgba(255,255,255,0.1)`
-                : undefined,
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Annotation line + label                                           */
@@ -168,12 +49,72 @@ function AnnotationLine({
 
 const TAGS = ["APPLE HEALTHKIT", "20+ METRICS", "AI AVATARS", "EMOTIONAL COMPANION"];
 
+const HERO_STATES: Array<{
+  preset: CompanionVoxelPresetId;
+  xp: string;
+  level: string;
+  mood: string;
+  thought: string;
+  accent: string;
+}> = [
+  {
+    preset: "energized",
+    xp: "XP: 2,450",
+    level: "LVL 12 — ATHLETE",
+    mood: "MOOD: ENERGIZED",
+    thought: "What a day. I can feel the light in both of us.",
+    accent: "radial-gradient(circle, rgba(255,215,0,0.12) 0%, rgba(0,255,136,0.08) 40%, transparent 72%)",
+  },
+  {
+    preset: "active-mood",
+    xp: "XP: 2,180",
+    level: "LVL 11 — ATHLETE",
+    mood: "MOOD: ACTIVE",
+    thought: "We’re in motion now. Keep the rhythm going.",
+    accent: "radial-gradient(circle, rgba(20,184,166,0.12) 0%, rgba(249,115,22,0.08) 42%, transparent 74%)",
+  },
+  {
+    preset: "calm",
+    xp: "XP: 1,620",
+    level: "LVL 8 — ACTIVE",
+    mood: "MOOD: CALM",
+    thought: "Gentle day. Quiet progress still changes us.",
+    accent: "radial-gradient(circle, rgba(249,168,212,0.12) 0%, rgba(255,255,255,0.08) 40%, transparent 72%)",
+  },
+  {
+    preset: "rested",
+    xp: "XP: 3,040",
+    level: "LVL 16 — CHAMPION",
+    mood: "MOOD: RESTED",
+    thought: "Deep rest changes everything. We’re glowing again.",
+    accent: "radial-gradient(circle, rgba(196,181,253,0.12) 0%, rgba(147,197,253,0.08) 44%, transparent 74%)",
+  },
+  {
+    preset: "tired",
+    xp: "XP: 420",
+    level: "LVL 3 — BEGINNER",
+    mood: "MOOD: TIRED",
+    thought: "Rough night. Let’s take it easy and recover together.",
+    accent: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 42%, transparent 74%)",
+  },
+];
+
 /* ------------------------------------------------------------------ */
 /*  HeroSection                                                       */
 /* ------------------------------------------------------------------ */
 
 export function HeroSection() {
   const [showBetaModal, setShowBetaModal] = useState(false);
+  const [stateIndex, setStateIndex] = useState(0);
+  const currentState = HERO_STATES[stateIndex];
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setStateIndex((current) => (current + 1) % HERO_STATES.length);
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <section
@@ -189,7 +130,7 @@ export function HeroSection() {
       {/* Subtle gradient accent behind content */}
       <div
         className="absolute top-[10%] right-[10%] w-[500px] h-[500px] rounded-full opacity-[0.04] pointer-events-none"
-        style={{ background: "radial-gradient(circle, #00ff88 0%, transparent 70%)" }}
+        style={{ background: currentState.accent }}
       />
 
       {/* Content wrapper */}
@@ -281,26 +222,30 @@ export function HeroSection() {
               className="relative z-10 flex flex-col items-center"
               style={{ animation: "float 6s ease-in-out infinite" }}
             >
-              <VoxelAvatar />
-              {/* Ground shadow */}
-              <div
-                className="mt-4 w-24 h-3 rounded-full opacity-20"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at center, #0a0a0a 0%, transparent 70%)",
-                }}
+              <CompanionVoxel
+                preset={currentState.preset}
+                size="md"
+                className="min-h-[420px] justify-center"
               />
+              <div className="mt-2 max-w-[260px] text-center">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#737373]">
+                  current companion state
+                </p>
+                <p className="mt-2 font-serif text-[15px] italic leading-[1.5] text-[#525252]">
+                  {currentState.thought}
+                </p>
+              </div>
             </div>
 
             {/* Annotation lines */}
             <div className="absolute top-[12%] right-[-4%] hidden md:block">
-              <AnnotationLine label="XP: 2,450" lineWidth={50} />
+              <AnnotationLine label={currentState.xp} lineWidth={50} />
             </div>
             <div className="absolute top-[46%] right-[-8%] hidden md:block">
-              <AnnotationLine label="LVL 12 — ATHLETE" lineWidth={40} />
+              <AnnotationLine label={currentState.level} lineWidth={40} />
             </div>
             <div className="absolute bottom-[22%] right-[-2%] hidden md:block">
-              <AnnotationLine label="MOOD: ENERGIZED" lineWidth={55} />
+              <AnnotationLine label={currentState.mood} lineWidth={55} />
             </div>
           </div>
         </div>
